@@ -5,7 +5,7 @@ from pathlib import Path
 import joblib
 import pandas as pd
 
-from pepguard.features import build_feature_matrix
+from pepguard.feature_sets import build_features
 from pepguard.metrics import apply_threshold
 
 # the exact columns the judging script expects, in this order
@@ -37,8 +37,8 @@ def load_bundle(task: str, models_dir: Path = MODELS_DIR) -> dict:
 
 # this function scores sequences with one saved classifier and returns probability and 0/1 call
 def score(sequences, bundle: dict):
-	# build features, then keep only the columns the model was trained on, in the same order
-	X = build_feature_matrix(sequences)[bundle['feature_columns']]
+	# build the same kind of features the model was trained on, in the same column order
+	X = build_features(sequences, bundle['feature_set'])[bundle['feature_columns']]
 	proba = bundle['model'].predict_proba(X)[:, 1]
 	return proba, apply_threshold(proba, bundle['threshold'])
 

@@ -4,14 +4,15 @@ import pandas as pd
 
 from pepguard.features import build_feature_matrix
 from pepguard.train import (
-	candidate_models, compare_models, cross_val_probabilities, pick_best, train_task
+	CANDIDATE_FEATURES, candidate_models, compare_models, cross_val_probabilities, pick_best, train_task
 )
 
 
 # this test checks that all three candidates exist and each carries its own scaler
 def test_candidate_models():
 	models = candidate_models()
-	assert set(models) == {'logreg', 'random_forest', 'svm_rbf'}
+	assert set(models) == {'logreg', 'random_forest', 'svm_rbf', 'esm150_logreg'}
+	assert set(models) == set(CANDIDATE_FEATURES)
 	assert all(model.steps[0][0] == 'standardscaler' for model in models.values())
 
 
@@ -47,7 +48,7 @@ def test_compare_models_learns_a_clear_signal(tmp_path, make_toy_csv):
 	df = pd.read_csv(csv)
 	X, y = build_feature_matrix(df['sequence']), df['label'].to_numpy()
 	
-	results = compare_models(X, y, folds=3)
+	results = compare_models({'hand': X}, y, folds=3)
 	best = pick_best(results)
 	assert best in results
 	assert results[best]['accuracy'] > 0.95
@@ -64,10 +65,11 @@ def test_train_task_saves_a_loadable_bundle(tmp_path, make_toy_csv):
 	csv = tmp_path / 'toy.csv'
 	make_toy_csv(csv)
 	
-	train_task('toy', str(csv), models_dir=tmp_path / 'models', folds=3)
+	train_task('toy', str(csv), models_dir=tmp_path / 'models', folds=3, use_esm=False)
 	bundle = joblib.load(tmp_path / 'models' / 'toy.joblib')
 	
-	assert {'model', 'model_name', 'feature_columns', 'threshold', 'cv_metrics'} <= set(bundle)
+	assert {'model', 'model_name', 'feature_set', 'feature_columns', 'threshold', 'cv_metrics'} <= set(bundle)
+	assert bundle['feature_set'] == 'hand'
 	assert 0.05 <= bundle['threshold'] <= 0.95
 	assert len(bundle['feature_columns']) == 429
 	
@@ -96,3 +98,15 @@ def test_only_hemolytic_is_weighted():
 	from pepguard.train import EXCEPTION_WEIGHT
 	assert EXCEPTION_WEIGHT.get('hemolytic', 1.0) > 1.0
 	assert EXCEPTION_WEIGHT.get('anticancer', 1.0) == 1.0
+
+
+# this test checks that candidates whose features were not built are skipped
+def test_compare_models_skips_candidates_without_features(tmp_path, make_toy_csv):
+	csv = tmp_path / 'toy.csv'
+	make_toy_csv(csv)
+	df = pd.read_csv(csv)
+	X, y = build_feature_matrix(df['sequence']), df['label'].to_numpy()
+	
+	results = compare_models({'hand': X}, y, folds=3)
+	assert 'esm150_logreg' not in results
+	assert {'logreg', 'random_forest', 'svm_rbf'} == set(results)

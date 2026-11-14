@@ -14,7 +14,7 @@ def models_dir(tmp_path_factory, make_toy_csv):
 	csv = root / 'toy.csv'
 	make_toy_csv(csv)
 	for task in ('anticancer', 'hemolytic'):
-		train_task(task, str(csv), models_dir=root / 'models', folds=3)
+		train_task(task, str(csv), models_dir=root / 'models', folds=3, use_esm=False)
 	return root / 'models'
 
 

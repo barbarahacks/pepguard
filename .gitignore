@@ -11,3 +11,6 @@ __pycache__/
 # models and outputs are rebuilt by the scripts
 models/*.joblib
 outputs/*.csv
+
+# esm-2 embedding cache (rebuilt on demand)
+data/cache/

@@ -29,6 +29,10 @@ python -m pepguard.predict final_test_sequences.csv --out outputs/submission.csv
 
 the output is checked against the official template columns before it is written.
 
+## esm-2 (feature extractor only)
+
+some models use esm-2 embeddings as features. esm-2 is a general protein language model and is only used to turn a peptide into numbers. our own classifier is trained on the labeled data we were given. the embedding runs in a separate process (torch and sklearn in one process can crash on macos) and is cached in `data/cache/`. the esm-2 weights are expected in `~/.cache/torch/hub/checkpoints`.
+
 ## layout
 
 ```
