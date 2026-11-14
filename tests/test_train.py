@@ -110,3 +110,16 @@ def test_compare_models_skips_candidates_without_features(tmp_path, make_toy_csv
 	results = compare_models({'hand': X}, y, folds=3)
 	assert 'esm150_logreg' not in results
 	assert {'logreg', 'random_forest', 'svm_rbf'} == set(results)
+
+
+# this test checks the command line defaults and the fallback flags
+def test_parse_args():
+	from pepguard.train import parse_args
+	
+	defaults = parse_args([])
+	assert defaults.models == 'models'
+	assert defaults.no_esm is False
+	
+	fallback = parse_args(['--no-esm', '--models', 'models_fallback'])
+	assert fallback.no_esm is True
+	assert fallback.models == 'models_fallback'

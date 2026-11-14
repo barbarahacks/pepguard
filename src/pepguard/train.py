@@ -1,3 +1,4 @@
+import argparse
 from pathlib import Path
 
 import joblib
@@ -149,11 +150,21 @@ def train_task(
 	return {'results': results, 'best': best_name, 'threshold': threshold, 'tuned': tuned}
 
 
+# this function reads the command line options
+def parse_args(argv=None):
+	parser = argparse.ArgumentParser(description='train the anticancer and hemolytic classifiers')
+	parser.add_argument('--models', default=str(MODELS_DIR), help='folder to save the models in')
+	parser.add_argument('--no-esm', action='store_true', help='skip esm-2 features (fallback if torch or the weights fail)')
+	return parser.parse_args(argv)
+
+
 # this function trains both classifiers and prints a comparison table
-def main():
+def main(argv=None):
+	args = parse_args(argv)
+	
 	for task, csv_path in TASKS.items():
 		print(f'\n--- {task} (grouped cv) ---')
-		out = train_task(task, csv_path)
+		out = train_task(task, csv_path, models_dir=Path(args.models), use_esm=not args.no_esm)
 		
 		for name, res in out['results'].items():
 			marker = '*' if name == out['best'] else ' '
@@ -164,7 +175,7 @@ def main():
 		
 		tuned = out['tuned']
 		print(f'  threshold {out["threshold"]:.2f} -> acc {tuned["accuracy"]:.3f} | sens {tuned["sensitivity"]:.3f} | spec {tuned["specificity"]:.3f}')
-		print(f'saved models/{task}.joblib (best: {out["best"]}, features: {CANDIDATE_FEATURES[out["best"]]})')
+		print(f'saved {args.models}/{task}.joblib (best: {out["best"]}, features: {CANDIDATE_FEATURES[out["best"]]})')
 
 
 if __name__ == '__main__':
