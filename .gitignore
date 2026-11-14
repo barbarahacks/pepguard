@@ -1,0 +1,13 @@
+# python
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# ide / os
+.idea/
+.DS_Store
+
+# models and outputs are rebuilt by the scripts
+models/*.joblib
+outputs/*.csv
