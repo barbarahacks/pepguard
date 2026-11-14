@@ -12,6 +12,7 @@ the two predictions are crossed into a verdict: `Selective`, `Works but toxic`, 
 
 - `CODE_GUIDE.md`: the code explained like you're 5, with live demos
 - `EXPLAIN.md`: how it works, for the judges' questions
+- `WALKTHROUGH.md`: practice questions and answers for the judges
 - `RUNBOOK.md`: the drop-day steps
 
 ## setup
