@@ -7,16 +7,9 @@ from pepguard.predict import (
 from pepguard.train import train_task
 
 
-# this function makes a tiny separable dataset: positives are all k/r, negatives are all d/e
-def make_toy_csv(path, n: int = 30):
-	pos = ['KRKRKRKR' + 'K' * (i % 4) for i in range(n)]
-	neg = ['DEDEDEDE' + 'D' * (i % 4) for i in range(n)]
-	pd.DataFrame({'sequence': pos + neg, 'label': [1] * n + [0] * n}).to_csv(path, index=False)
-
-
 # this fixture trains small anticancer and hemolytic models once and returns where they are saved
 @pytest.fixture(scope='module')
-def models_dir(tmp_path_factory):
+def models_dir(tmp_path_factory, make_toy_csv):
 	root = tmp_path_factory.mktemp('toy_models')
 	csv = root / 'toy.csv'
 	make_toy_csv(csv)
