@@ -40,6 +40,6 @@ python -m pepguard.predict data/final/final_test_sequences.csv --out outputs/sub
 | `invalid submission: ...` | the message says which rule broke, fix the input file, do not edit the csv by hand |
 | row count is not 650 | check the input has a `sequence` column and no blank lines at the end |
 
-## open question for a mentor
+## verdict wording (settled)
 
-the pdf spells the third verdict two ways: "Toxic and does not work" (table) and "Toxic and doesn't work" (format section). we use `Toxic and doesn't work`. if the mentors say otherwise, change `VERDICTS` in `src/pepguard/predict.py` and rerun.
+the organizers said either spelling of the verdicts is fine and the verdict column's wording is not scored. the judging script needs: a `sequence` column matching the test file, the two predictions as 0 or 1, and the two probabilities between 0 and 1. `predict.py` guarantees all of that before it writes the file.
