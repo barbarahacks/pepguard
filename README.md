@@ -1,4 +1,4 @@
-# pepguard
+# pepguard 🧬
 
 predicts which peptides kill cancer cells without harming red blood cells (hack 2 the future, biology track).
 
@@ -7,6 +7,12 @@ two classifiers, trained separately on their own datasets:
 - hemolytic: probability a peptide damages red blood cells
 
 the two predictions are crossed into a verdict: `Selective`, `Works but toxic`, `Toxic and doesn't work` or `Does nothing`.
+
+## docs
+
+- `CODE_GUIDE.md`: the code explained like you're 5, with live demos
+- `EXPLAIN.md`: how it works, for the judges' questions
+- `RUNBOOK.md`: the drop-day steps
 
 ## setup
 
