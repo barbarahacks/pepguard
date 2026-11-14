@@ -75,3 +75,24 @@ def test_train_task_saves_a_loadable_bundle(tmp_path, make_toy_csv):
 	new = build_feature_matrix(['KRKRKR', 'DEDEDE'])[bundle['feature_columns']]
 	proba = bundle['model'].predict_proba(new)[:, 1]
 	assert proba[0] > 0.5 > proba[1]
+
+
+# this test checks that cv and the final fit accept sample weights for every candidate model
+def test_models_accept_sample_weights(tmp_path, make_toy_csv):
+	csv = tmp_path / 'toy.csv'
+	make_toy_csv(csv)
+	df = pd.read_csv(csv)
+	X, y = build_feature_matrix(df['sequence']), df['label'].to_numpy()
+	weights = np.where(np.arange(len(y)) % 5 == 0, 3.0, 1.0)
+	
+	for name, model in candidate_models().items():
+		proba = cross_val_probabilities(model, X, y, folds=3, sample_weight=weights)
+		assert proba.shape == (len(y),), name
+		assert ((proba >= 0) & (proba <= 1)).all(), name
+
+
+# this test checks that the hemolytic task is weighted and anticancer is not
+def test_only_hemolytic_is_weighted():
+	from pepguard.train import EXCEPTION_WEIGHT
+	assert EXCEPTION_WEIGHT.get('hemolytic', 1.0) > 1.0
+	assert EXCEPTION_WEIGHT.get('anticancer', 1.0) == 1.0

@@ -15,12 +15,17 @@ from pepguard.features import build_feature_matrix
 from pepguard.groups import similarity_groups
 from pepguard.metrics import compute_metrics
 from pepguard.thresholds import tune_threshold
+from pepguard.weights import exception_weights
 
 # the two classifiers and the dataset each one learns from
 TASKS = {
 	'anticancer': 'data/initial/anticancer_train.csv',
 	'hemolytic': 'data/initial/hemolytic_train.csv'
 }
+
+# how much to upweight the exception peptides, per task (1 means no weighting)
+# the hemolytic set is dominated by "cationic = hemolytic", so the exceptions get extra weight
+EXCEPTION_WEIGHT = {'hemolytic': 3.0}
 
 # same seed everywhere so results can be repeated
 SEED = 42
@@ -45,20 +50,28 @@ def candidate_models() -> dict:
 
 
 # this function gets out-of-fold probabilities: every peptide is scored by a model that never saw it
-def cross_val_probabilities(model, X: pd.DataFrame, y, groups=None, folds: int = 5):
+def cross_val_probabilities(model, X: pd.DataFrame, y, groups=None, folds: int = 5, sample_weight=None):
 	# with groups, similar peptides stay on the same side of the split so cv can't peek at relatives
 	if groups is not None:
 		cv = StratifiedGroupKFold(n_splits=folds, shuffle=True, random_state=SEED)
 	else:
 		cv = StratifiedKFold(n_splits=folds, shuffle=True, random_state=SEED)
-	return cross_val_predict(model, X, y, cv=cv, groups=groups, method='predict_proba')[:, 1]
+	
+	# the weights are passed to the last step of the pipeline, which is the classifier
+	params = {fit_weight_name(model): sample_weight} if sample_weight is not None else None
+	return cross_val_predict(model, X, y, cv=cv, groups=groups, method='predict_proba', params=params)[:, 1]
+
+
+# this function names the fit argument that carries sample weights to the classifier inside a pipeline
+def fit_weight_name(model) -> str:
+	return f'{model.steps[-1][0]}__sample_weight'
 
 
 # this function compares all candidate models with cross validation and returns their metrics
-def compare_models(X: pd.DataFrame, y, groups=None, folds: int = 5) -> dict:
+def compare_models(X: pd.DataFrame, y, groups=None, folds: int = 5, sample_weight=None) -> dict:
 	results = {}
 	for name, model in candidate_models().items():
-		proba = cross_val_probabilities(model, X, y, groups, folds)
+		proba = cross_val_probabilities(model, X, y, groups, folds, sample_weight)
 		results[name] = {'proba': proba, **compute_metrics(y, proba)}
 	return results
 
@@ -77,8 +90,12 @@ def train_task(task: str, csv_path: str, models_dir: Path = MODELS_DIR, folds: i
 	# group similar peptides so the cv estimate is honest
 	groups = similarity_groups(df['sequence'])
 	
+	# upweight exception peptides for the tasks that need it (the weights only depend on charge and label)
+	weight = EXCEPTION_WEIGHT.get(task, 1.0)
+	sample_weight = exception_weights(X, y, weight) if weight != 1.0 else None
+	
 	# compare models fairly with grouped cross validation and keep the best one
-	results = compare_models(X, y, groups, folds)
+	results = compare_models(X, y, groups, folds, sample_weight)
 	best_name = pick_best(results)
 	
 	# tune the decision threshold on the winner's out-of-fold probabilities, never on the training fit
@@ -86,7 +103,11 @@ def train_task(task: str, csv_path: str, models_dir: Path = MODELS_DIR, folds: i
 	tuned = compute_metrics(y, results[best_name]['proba'], threshold)
 	
 	# refit the winner on all the data, since only cv was used to judge it
-	model = candidate_models()[best_name].fit(X, y)
+	model = candidate_models()[best_name]
+	if sample_weight is not None:
+		model.fit(X, y, **{fit_weight_name(model): sample_weight})
+	else:
+		model.fit(X, y)
 	
 	# save everything predict.py needs, so nothing is retrained at the end
 	models_dir.mkdir(parents=True, exist_ok=True)
