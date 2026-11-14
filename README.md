@@ -14,7 +14,20 @@ the two predictions are crossed into a verdict: `Selective`, `Works but toxic`, 
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 python -m pytest
+pip install -e .      # makes `pepguard` importable
 ```
+
+## train and predict
+
+```bash
+# trains both classifiers and saves them to models/
+python -m pepguard.train
+
+# scores a csv with a `sequence` column and writes the submission csv
+python -m pepguard.predict final_test_sequences.csv --out outputs/submission.csv
+```
+
+the output is checked against the official template columns before it is written.
 
 ## layout
 
